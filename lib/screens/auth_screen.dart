@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:todo_app/providers/helpers/http_Exeption.dart';
 //provider
 import '../providers/auth.dart';
 
@@ -15,11 +16,27 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   Map<String, String> _authData = {'email': '', 'password': ''};
 
-  AuthMode _authMode = AuthMode.register;
+  AuthMode _authMode = AuthMode.login;
 
   final _formKey = GlobalKey<FormState>();
 
   final _passwordController = TextEditingController();
+
+  void _showDialog(String errorMessage) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Ocorreu um erro'),
+              content: Text(errorMessage),
+              actions: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Ok'))
+              ],
+            ));
+  }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -36,8 +53,24 @@ class _AuthScreenState extends State<AuthScreen> {
         await Provider.of<Auth>(context, listen: false)
             .login(_authData['email']!, _authData['password']!);
       }
+    } on HttpException catch (error) {
+      String errorMsg = 'Algo deu errado com a altenticação!';
+      if (error.toString().contains('EMAIL_EXISTS')) {
+        errorMsg = 'O endereço de e-mail já está sendo usado por outra conta';
+      } else if (error.toString().contains('INVALID_EMAIL')) {
+        errorMsg = 'O endereço de e-mail é inválido';
+      } else if (error.toString().contains('EMAIL_NOT_FOUND')) {
+        errorMsg = 'Não foi encontrado um usuário com esse e-mail';
+      } else if (error.toString().contains('WEAK_PASSWORD')) {
+        errorMsg = 'Senha fraca';
+      } else if (error.toString().contains('INVALID_PASSWORD')) {
+        errorMsg = 'Senha inválida';
+      }
+      _showDialog(errorMsg);
     } catch (error) {
-      print(error);
+      const errMsg =
+          'Não foi possível realizar a autenticação. Por favor, tente novamente mais tarde';
+      _showDialog(errMsg);
     }
   }
 
@@ -115,7 +148,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: const InputDecoration(
                         border: OutlineInputBorder(), hintText: 'Senha'),
                     controller: _passwordController,
-                    keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value!.isEmpty) {
                         return 'Campo obrigatório';

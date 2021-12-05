@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 
 import 'dart:convert';
 
+import './helpers/http_Exeption.dart';
+
 class Auth with ChangeNotifier {
   String? _token;
   DateTime? _expiryDate;
@@ -10,6 +12,10 @@ class Auth with ChangeNotifier {
 
   bool get isAuth {
     return token != null;
+  }
+
+  String? get userId {
+    return _userId;
   }
 
   String? get token {
@@ -33,7 +39,11 @@ class Auth with ChangeNotifier {
             'returnSecureToken': true
           }));
       final responseData = json.decode(response.body);
+      if (responseData['error'] != null) {
+        throw HttpException(responseData['error']['message']);
+      }
       _token = responseData['idToken'];
+      _userId = responseData['localId'];
       _expiryDate = DateTime.now()
           .add(Duration(seconds: int.parse(responseData['expiresIn'])));
     } catch (error) {
@@ -48,5 +58,12 @@ class Auth with ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     return _authentication(email, password, 'signInWithPassword');
+  }
+
+  Future<void> logout() async {
+    _token = null;
+    _expiryDate = null;
+    _userId = null;
+    notifyListeners();
   }
 }

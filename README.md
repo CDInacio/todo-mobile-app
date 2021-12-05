@@ -1,5 +1,8 @@
 # todo_app
 
+# considerações
+- Faltam ainda algumas implementações importantes, como login automático, logout entre outros.
+
 A new Flutter project.
 
 ## Getting Started
